@@ -1,10 +1,7 @@
-// AMHARA-IP-PROJECT/backend/routes/api.php
-
 <?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Api\ProjectManagement\DashboardController;
 use App\Http\Controllers\Api\ProjectManagement\FeedbackController;
 use App\Http\Controllers\Api\ProjectManagement\FinalInspectionController;
@@ -31,20 +28,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Helper function for role-based authorization
-function checkRole(string $role)
-{
-    return function () use ($role) {
-        if (!Auth::check()) {
-            abort(401, 'Unauthorized');
-        }
-
-        if (Auth::user()->role !== $role) {
-            abort(403, 'Forbidden');
-        }
-    };
-}
-
 Route::prefix('project_management')->group(function () {
     // Public Routes
     Route::prefix('public')->group(function () {
@@ -56,38 +39,32 @@ Route::prefix('project_management')->group(function () {
     Route::post('/feedback', [FeedbackController::class, 'store']);
 
     // Admin Routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::middleware(checkRole('admin'))->group(function () {
-            Route::resource('contractors', ContractorController::class);
-             Route::get('/project-report/dashboard-report', [ProjectReportController::class, 'dashboardReport']);
-        });
+    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+        Route::resource('contractors', ContractorController::class);
+        Route::get('/project-report/dashboard-report', [ProjectReportController::class, 'dashboardReport']);
     });
 
     // Official (Internal User) Routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::middleware(checkRole('official'))->group(function () {
-            Route::resource('projects', ProjectController::class);
-            Route::resource('inspections', InspectionController::class);
-            Route::resource('final-inspections', FinalInspectionController::class);
-            Route::resource('retentions', RetentionController::class);
-            Route::get('/project-report/project-detail/{project}', [ProjectReportController::class, 'projectDetailReport']);
-            Route::get('/project-report/project-status-history/{project}', [ProjectReportController::class, 'projectStatusHistoryReport']);
-            Route::get('/project-report/projects-by-phase/{phase}', [ProjectReportController::class, 'projectsByPhaseReport']);
-            Route::get('/project-report/retention-work', [ProjectReportController::class, 'retentionWorkReport']);
-            Route::get('/project-report/final-inspection', [ProjectReportController::class, 'finalInspectionReport']);
-        });
+    Route::middleware(['auth:sanctum', 'role:official'])->group(function () {
+        Route::resource('projects', ProjectController::class);
+        Route::resource('inspections', InspectionController::class);
+        Route::resource('final-inspections', FinalInspectionController::class);
+        Route::resource('retentions', RetentionController::class);
+        Route::get('/project-report/project-detail/{project}', [ProjectReportController::class, 'projectDetailReport']);
+        Route::get('/project-report/project-status-history/{project}', [ProjectReportController::class, 'projectStatusHistoryReport']);
+        Route::get('/project-report/projects-by-phase/{phase}', [ProjectReportController::class, 'projectsByPhaseReport']);
+        Route::get('/project-report/retention-work', [ProjectReportController::class, 'retentionWorkReport']);
+        Route::get('/project-report/final-inspection', [ProjectReportController::class, 'finalInspectionReport']);
     });
 
     Route::get('/status-history/{projectId}', [StatusHistoryController::class, 'getByProject']);
 
     // Contractor Routes
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::middleware(checkRole('contractor'))->group(function () {
-            Route::get('/contractor/my-projects', [ContractorController::class, 'myProjects']);
-            Route::get('/contractor/progress-report', [ContractorController::class, 'progressReport']);
-            Route::get('/contractor/retention-status', [ContractorController::class, 'retentionStatus']);
-            Route::get('/contractor/final-inspection-feedback', [ContractorController::class, 'finalInspectionFeedback']);
-        });
+    Route::middleware(['auth:sanctum', 'role:contractor'])->group(function () {
+        Route::get('/contractor/my-projects', [ContractorController::class, 'myProjects']);
+        Route::get('/contractor/progress-report', [ContractorController::class, 'progressReport']);
+        Route::get('/contractor/retention-status', [ContractorController::class, 'retentionStatus']);
+        Route::get('/contractor/final-inspection-feedback', [ContractorController::class, 'finalInspectionFeedback']);
     });
 
     // Dashboard Routes (Authentication only)

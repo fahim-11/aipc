@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,19 +12,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // Create a test user. Make sure you have the 'name' column in your users table!
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
-        /**
-     * Seed the application's database.
-     */
-              $this->call([
+
+        // Call other seeders (if you have them).  Important: Move this *outside* the User::factory()->create() call.
+        $this->call([
             ConsultancySeeder::class,
             ContractorSeeder::class,
-            UserSeeder::class,
+            UserSeeder::class, //If UserSeeder also attempts to use the name column, make sure you created it using the migration.
             // Add other seeders here
         ]);
     }
