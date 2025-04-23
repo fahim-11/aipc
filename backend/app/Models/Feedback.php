@@ -1,17 +1,24 @@
-<?php 
+<?php
+
 namespace App\Models;
+
+// AMHARA-IP-PROJECT/backend/app/Models/Feedback.php
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Feedback extends Model {
+class Feedback extends Model
+{
     use HasFactory;
 
-    protected $fillable = ['project_name', 'complaint_type', 'description', 'contact_info', 'status'];
+    protected $fillable = [
+        'complaint_type',
+        'description',
+        'contact_email',
+        'status', // Added status field
+    ];
 
-    // If linking to project:
-    // protected $fillable = ['project_id', 'complaint_type', 'description', 'contact_info', 'status'];
-    // public function project() {
-    //     return $this->belongsTo(Project::class);
-    // }
+    protected $attributes = [
+        'status' => 'new', // Default status is 'new'
+    ];
 }

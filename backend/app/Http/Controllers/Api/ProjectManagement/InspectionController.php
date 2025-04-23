@@ -1,76 +1,130 @@
 <?php
+
+// AMHARA-IP-PROJECT/backend/app/Http/Controllers/Api/ProjectManagement/InspectionController.php
+
 namespace App\Http\Controllers\Api\ProjectManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\Project;
 use App\Models\InspectionReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class InspectionController extends Controller
 {
-     // Get inspections for a specific project
-     public function index(Project $project) {
-        return $project->inspectionReports()->orderBy('inspection_date', 'desc')->get();
+    /**
+     * Display a listing of inspection activities.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(): JsonResponse
+    {
+        $inspections = InspectionReport::all();
+        return response()->json($inspections);
     }
 
-    // Store a new inspection report
-    public function store(Request $request, Project $project)
+    /**
+     * Store a newly created inspection activity in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|exists:projects,id',
             'inspection_date' => 'required|date',
-            'inspector_name' => 'required|string|max:255',
+            'team_inspector_name' => 'required|string',
             'findings' => 'required|string',
-            'report_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:10240', // 10MB Max
+            'supporting_files' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
         ]);
 
-        $filePath = null;
-        $originalName = null;
-        if ($request->hasFile('report_file')) {
-            $file = $request->file('report_file');
-            $originalName = $file->getClientOriginalName();
-            // Store in 'public/inspection_reports/{project_id}/filename.ext'
-            $filePath = $file->store("inspection_reports/{$project->id}", 'public');
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $inspection = InspectionReport::create([
-            'project_id' => $project->id,
-            'inspection_date' => $validated['inspection_date'],
-            'inspector_name' => $validated['inspector_name'],
-            'findings' => $validated['findings'],
-            'report_file_path' => $filePath,
-            'original_file_name' => $originalName,
-        ]);
+        $validatedData = $validator->validated();
 
-        // Load the accessor URL before returning
-        $inspection->load('project'); // Optional: if needed on frontend
-        $inspection->refresh(); // Ensure accessor is loaded
+        if ($request->hasFile('supporting_files')) {
+            $file = $request->file('supporting_files');
+            $path = $file->store('inspection_reports', 'public');
+            $validatedData['supporting_files'] = $path;
+        }
 
+        $inspection = InspectionReport::create($validatedData);
 
-        return response()->json($inspection->append('report_file_url'), 201);
+        return response()->json($inspection, 201);
     }
 
-     // Get a specific inspection report
-     public function show(Project $project, InspectionReport $inspectionReport) {
-         // Ensure the report belongs to the project (implicitly handled by route model binding setup)
-         if ($inspectionReport->project_id !== $project->id) {
-             abort(404);
-         }
-         return $inspectionReport->append('report_file_url');
-     }
+    /**
+     * Display the specified inspection activity.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show(int $id): JsonResponse
+    {
+        $inspection = InspectionReport::findOrFail($id);
+        return response()->json($inspection);
+    }
 
-      // (Optional) Delete an inspection report
-     public function destroy(Project $project, InspectionReport $inspectionReport) {
-         if ($inspectionReport->project_id !== $project->id) {
-             abort(404);
-         }
+    /**
+     * Update the specified inspection activity in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $inspection = InspectionReport::findOrFail($id);
 
-         // Delete file from storage if it exists
-         if ($inspectionReport->report_file_path) {
-             Storage::disk('public')->delete($inspectionReport->report_file_path);
-         }
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'exists:projects,id',
+            'inspection_date' => 'date',
+            'team_inspector_name' => 'string',
+            'findings' => 'string',
+            'supporting_files' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+        ]);
 
-         $inspectionReport->delete();
-         return response()->json(null, 204);
-     }
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $validatedData = $validator->validated();
+
+        if ($request->hasFile('supporting_files')) {
+            if ($inspection->supporting_files) {
+                Storage::disk('public')->delete($inspection->supporting_files);
+            }
+
+            $file = $request->file('supporting_files');
+            $path = $file->store('inspection_reports', 'public');
+            $validatedData['supporting_files'] = $path;
+        }
+
+        $inspection->update($validatedData);
+
+        return response()->json($inspection, 200);
+    }
+
+    /**
+     * Remove the specified inspection activity from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $inspection = InspectionReport::findOrFail($id);
+
+        if ($inspection->supporting_files) {
+            Storage::disk('public')->delete($inspection->supporting_files);
+        }
+
+        $inspection->delete();
+
+        return response()->json(null, 204);
+    }
 }

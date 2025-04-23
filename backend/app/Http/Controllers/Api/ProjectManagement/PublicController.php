@@ -1,40 +1,61 @@
 <?php
+
 namespace App\Http\Controllers\Api\ProjectManagement;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class PublicController extends Controller
 {
-    public function publicProjects(Request $request)
+    /**
+     * Display a listing of publicly visible projects.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(): JsonResponse
     {
-        $query = Project::query();
+        // Adjust the query to include only publicly visible fields
+        $projects = Project::select(['id', 'project_name', 'status', 'contractor_id', 'consultancy_id', 'start_date', 'end_date', 'location'])
+            ->with(['contractor:id,contractor_name', 'consultancy:id,consultancy_name']) // Load only the name fields from related tables
+            ->get();
 
-        // Basic Search Example
-        if ($request->has('search') && $request->search != '') {
-            $searchTerm = '%' . $request->search . '%';
-            $query->where(function($q) use ($searchTerm) {
-                $q->where('name', 'like', $searchTerm)
-                  ->orWhere('contractor_name', 'like', $searchTerm)
-                  ->orWhere('consultancy_name', 'like', $searchTerm)
-                  ->orWhere('location', 'like', $searchTerm);
-            });
-        }
+        return response()->json($projects);
+    }
 
-        // Select only public fields and rename 'name' to 'title'
-        $projects = $query->select([
-                'id',
-                'name as title', // Rename name to title
-                'status',
-                'contractor_name', // Directly use names stored
-                'consultancy_name',
-                'start_date',
-                'end_date',
-                'location' // Added location as it's often public info
-            ])
-            ->orderBy('start_date', 'desc')
-            ->paginate(10); // Add pagination
+    /**
+     * Display the specified publicly visible project.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show(int $id): JsonResponse
+    {
+        $project = Project::select(['id', 'project_name', 'status', 'contractor_id', 'consultancy_id', 'start_date', 'end_date', 'location'])
+            ->with(['contractor:id,contractor_name,phone_number,email_address', 'consultancy:id,consultancy_name,phone_number,email_address']) // Load only the necessary fields
+            ->findOrFail($id);
+
+        return response()->json($project);
+    }
+
+    /**
+     * Search projects by project name or contractor name.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $searchTerm = $request->input('search');
+
+        $projects = Project::select(['id', 'project_name', 'status', 'contractor_id', 'consultancy_id', 'start_date', 'end_date', 'location'])
+            ->where('project_name', 'like', "%{$searchTerm}%")
+            ->orWhereHas('contractor', function ($query) use ($searchTerm) {
+                $query->where('contractor_name', 'like', "%{$searchTerm}%");
+            })
+            ->with(['contractor:id,contractor_name', 'consultancy:id,consultancy_name'])
+            ->get();
 
         return response()->json($projects);
     }

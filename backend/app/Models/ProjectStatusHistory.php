@@ -2,29 +2,35 @@
 
 namespace App\Models;
 
-// AMHARA-IP-PROJECT/backend/app/Models/InspectionReport.php
+// AMHARA-IP-PROJECT/backend/app/Models/ProjectStatusHistory.php
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InspectionReport extends Model
+class ProjectStatusHistory extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'project_id',
-        'inspection_date',
-        'team_inspector_name',
-        'findings',
-        'supporting_files',
+        'status',
+        'changed_by',
     ];
 
     /**
-     * Get the project that owns the inspection report.
+     * Get the project that owns the status history.
      */
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Get the user that changed the status.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'changed_by');
     }
 }

@@ -1,37 +1,81 @@
-<?php namespace App\Models;
+<?php
+
+namespace App\Models;
+
+// AMHARA-IP-PROJECT/backend/app/Models/Project.php
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Project extends Model {
+class Project extends Model
+{
     use HasFactory;
+
     protected $fillable = [
-        'name', 'contractor_name', 'contractor_contact',
-        'consultancy_name', 'consultancy_contact', 'location',
-        'start_date', 'end_date', 'status', 'phases_milestones_details'
+        'project_name',
+        'contractor_id',
+        'consultancy_id',
+        'location',
+        'start_date',
+        'end_date',
+        'status',
     ];
 
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-    ];
+    /**
+     * Get the contractor that owns the project.
+     */
+    public function contractor(): BelongsTo
+    {
+        return $this->belongsTo(Contractor::class);
+    }
 
-    public function milestones() {
+    /**
+     * Get the consultancy that owns the project.
+     */
+    public function consultancy(): BelongsTo
+    {
+        return $this->belongsTo(Consultancy::class);
+    }
+
+    /**
+     * Get the milestones for the project.
+     */
+    public function milestones(): HasMany
+    {
         return $this->hasMany(Milestone::class);
     }
 
-    public function retentionFund() {
-        return $this->hasOne(RetentionFund::class);
+    /**
+     * Get the status history for the project.
+     */
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(ProjectStatusHistory::class);
     }
 
-    public function inspectionReports() {
+    /**
+     * Get the inspection reports for the project.
+     */
+    public function inspectionReports(): HasMany
+    {
         return $this->hasMany(InspectionReport::class);
     }
 
-    // If using foreign keys:
-    // public function contractor() {
-    //     return $this->belongsTo(Contractor::class);
-    // }
-    // public function consultancy() {
-    //     return $this->belongsTo(Consultancy::class);
-    // }
+    /**
+     * Get the retention funds for the project.
+     */
+    public function retentionFunds(): HasMany
+    {
+        return $this->hasMany(RetentionFund::class);
+    }
+
+    /**
+     * Get the feedback for the project.
+     */
+    public function feedbacks(): HasMany
+    {
+        return $this->hasMany(Feedback::class);
+    }
 }
