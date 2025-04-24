@@ -1,5 +1,3 @@
-// AMHARA-IP-PROJECT/backend/database/migrations/xxxx_xx_xx_add_role_contractor_id_to_users_table.php
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -14,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('public'); // Add role column with default value 'public'
+            // Remove the line that adds the 'role' column
+            // $table->string('role')->default('public'); // This line should be removed
             $table->foreignId('contractor_id')->nullable()->constrained('contractors')->onDelete('set null'); // Add contractor_id column, nullable
         });
     }
@@ -25,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
+            // Drop contractor_id first to avoid foreign key constraint issues
             $table->dropForeign(['contractor_id']);
             $table->dropColumn('contractor_id');
         });
