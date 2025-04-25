@@ -16,25 +16,25 @@ class AuthController extends Controller
         [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'plain_password' => 'password', // Raw password for initial setup
+            'password' => 'password', // Raw password for initial setup
             'role' => 'admin'
         ],
         [
             'name' => 'Official User',
             'email' => 'official@example.com',
-            'plain_password' => 'password',
+            'password' => 'password',
             'role' => 'official'
         ],
         [
             'name' => 'Contractor User',
             'email' => 'contractor@example.com',
-            'plain_password' => 'password',
+            'password' => 'password',
             'role' => 'contractor'
         ],
         [
             'name' => 'Public User',
             'email' => 'public@example.com',
-            'plain_password' => 'password',
+            'password' => 'password',
             'role' => 'public'
         ],
     ];
@@ -54,7 +54,7 @@ class AuthController extends Controller
                 ['email' => $staticUser['email']],
                 [
                     'name' => $staticUser['name'],
-                    'password' => Hash::make($staticUser['plain_password']),
+                    'password' => Hash::make($staticUser['password']),
                     'role' => $staticUser['role']
                 ]
             );
