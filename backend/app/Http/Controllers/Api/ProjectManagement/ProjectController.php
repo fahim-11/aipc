@@ -1,7 +1,5 @@
 <?php
 
-// AMHARA-IP-PROJECT/backend/app/Http/Controllers/Api/ProjectManagement/ProjectController.php
-
 namespace App\Http\Controllers\Api\ProjectManagement;
 
 use App\Http\Controllers\Controller;
@@ -14,30 +12,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use App\Events\ProjectCreated; // Ensure this class exists in the App\Events namespace
-use App\Events\ProjectUpdated; // Ensure this class exists in the App\Events namespace
+use App\Events\ProjectCreated;
+use App\Events\ProjectUpdated;
+use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
-    /**
-     * Display a listing of projects.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function index(): JsonResponse
     {
         $projects = Project::with(['contractor', 'consultancy', 'milestones'])->get();
         return response()->json($projects);
     }
 
-    /**
-     * Store a newly created project in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function store(Request $request): JsonResponse
     {
+        Log::info('ProjectController::store() - Request Data:', $request->all());
+
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
             'contractor_id' => 'required|exists:contractors,id',
@@ -47,15 +37,18 @@ class ProjectController extends Controller
             'end_date' => 'required|date',
             'status' => 'required|in:Planning,Under Construction,Final Inspection,Completed',
             'phases' => 'required|array',
+            'phases.*.phase_name' => 'required|string',
+            'phases.*.milestones' => 'required|array',
+            'phases.*.milestones.*.milestone_name' => 'required|string',
         ]);
 
         if ($validator->fails()) {
+            Log::error('ProjectController::store() - Validation Errors:', $validator->errors()->toArray());
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         $validatedData = $validator->validated();
 
-        // Create the project
         $project = Project::create([
             'project_name' => $validatedData['project_name'],
             'contractor_id' => $validatedData['contractor_id'],
@@ -66,7 +59,6 @@ class ProjectController extends Controller
             'status' => $validatedData['status'],
         ]);
 
-        // Create milestones for each phase
         foreach ($validatedData['phases'] as $phase) {
             foreach ($phase['milestones'] as $milestoneData) {
                 Milestone::create([
@@ -77,38 +69,23 @@ class ProjectController extends Controller
             }
         }
 
-        // Create status history
         ProjectStatusHistory::create([
             'project_id' => $project->id,
             'status' => $project->status,
-            'changed_by' => Auth::id(), // Assuming user is authenticated
+            'changed_by' => Auth::id(),
         ]);
 
-        // Dispatch ProjectCreated event
         event(new ProjectCreated($project));
 
         return response()->json(['message' => 'Project created successfully', 'data' => $project], 201);
     }
 
-    /**
-     * Display the specified project.
-     *
-     * @param  \App\Models\Project  $project
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function show(Project $project): JsonResponse
     {
         $project->load(['contractor', 'consultancy', 'milestones', 'statusHistory']);
         return response()->json($project);
     }
 
-    /**
-     * Update the specified project in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Project  $project
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function update(Request $request, Project $project): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -120,6 +97,9 @@ class ProjectController extends Controller
             'end_date' => 'date',
             'status' => 'in:Planning,Under Construction,Final Inspection,Completed',
             'phases' => 'array',
+            'phases.*.phase_name' => 'string',
+            'phases.*.milestones' => 'array',
+            'phases.*.milestones.*.milestone_name' => 'string',
         ]);
 
         if ($validator->fails()) {
@@ -128,7 +108,6 @@ class ProjectController extends Controller
 
         $validatedData = $validator->validated();
 
-        // Update the project
         $project->update([
             'project_name' => $validatedData['project_name'] ?? $project->project_name,
             'contractor_id' => $validatedData['contractor_id'] ?? $project->contractor_id,
@@ -139,12 +118,8 @@ class ProjectController extends Controller
             'status' => $validatedData['status'] ?? $project->status,
         ]);
 
-        // Update milestones if phases are provided
         if (isset($validatedData['phases'])) {
-            // Delete existing milestones
             Milestone::where('project_id', $project->id)->delete();
-
-            // Create new milestones
             foreach ($validatedData['phases'] as $phase) {
                 foreach ($phase['milestones'] as $milestoneData) {
                     Milestone::create([
@@ -156,46 +131,27 @@ class ProjectController extends Controller
             }
         }
 
-        // Create status history if status is updated
         if (isset($validatedData['status']) && $validatedData['status'] !== $project->status) {
             ProjectStatusHistory::create([
                 'project_id' => $project->id,
                 'status' => $validatedData['status'],
-                'changed_by' => Auth::id(), // Assuming user is authenticated
+                'changed_by' => Auth::id(),
             ]);
         }
 
-        // Dispatch ProjectUpdated event
         event(new ProjectUpdated($project));
 
         return response()->json(['message' => 'Project updated successfully', 'data' => $project], 200);
     }
 
-    /**
-     * Remove the specified project from storage.
-     *
-     * @param  \App\Models\Project  $project
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function destroy(Project $project): JsonResponse
     {
-        // Delete milestones associated with the project
         Milestone::where('project_id', $project->id)->delete();
-
-        // Delete status history associated with the project
         ProjectStatusHistory::where('project_id', $project->id)->delete();
-
         $project->delete();
-
         return response()->json(['message' => 'Project deleted successfully'], 204);
     }
 
-    /**
-     * Get projects by phase.
-     *
-     * @param  string  $phase
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getProjectsByPhase(string $phase): JsonResponse
     {
         $projects = Project::where('status', $phase)->get();

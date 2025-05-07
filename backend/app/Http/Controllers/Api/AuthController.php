@@ -6,17 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Contractor;
+use App\Models\Consultancy;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // Static user configurations
     protected static $staticUsers = [
         [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => 'password', // Raw password for initial setup
+            'password' => 'password',
             'role' => 'admin'
         ],
         [
@@ -39,14 +40,31 @@ class AuthController extends Controller
         ],
     ];
 
+    protected static $staticContractors = [
+        [
+            'name' => 'Sample Contractor',
+            'email' => 'contractor@example.com',
+            'phone' => '1234567890',
+            'address' => '123 Contractor St'
+        ],
+    ];
+
+    protected static $staticConsultancies = [
+        [
+            'name' => 'Sample Consultancy',
+            'email' => 'consultancy@example.com',
+            'phone' => '0987654321',
+            'address' => '456 Consultancy Ave'
+        ],
+    ];
+
     public function __construct()
     {
         $this->createStaticUsersIfMissing();
+        $this->createStaticContractorsIfMissing();
+        $this->createStaticConsultanciesIfMissing();
     }
 
-    /**
-     * Create static users if they don't exist in the database
-     */
     protected function createStaticUsersIfMissing()
     {
         foreach (self::$staticUsers as $staticUser) {
@@ -56,6 +74,34 @@ class AuthController extends Controller
                     'name' => $staticUser['name'],
                     'password' => Hash::make($staticUser['password']),
                     'role' => $staticUser['role']
+                ]
+            );
+        }
+    }
+
+    protected function createStaticContractorsIfMissing()
+    {
+        foreach (self::$staticContractors as $staticContractor) {
+            Contractor::firstOrCreate(
+                ['email' => $staticContractor['email']],
+                [
+                    'name' => $staticContractor['name'],
+                    'phone' => $staticContractor['phone'],
+                    'address' => $staticContractor['address']
+                ]
+            );
+        }
+    }
+
+    protected function createStaticConsultanciesIfMissing()
+    {
+        foreach (self::$staticConsultancies as $staticConsultancy) {
+            Consultancy::firstOrCreate(
+                ['email' => $staticConsultancy['email']],
+                [
+                    'name' => $staticConsultancy['name'],
+                    'phone' => $staticConsultancy['phone'],
+                    'address' => $staticConsultancy['address']
                 ]
             );
         }
