@@ -1,5 +1,3 @@
-// AMHARA-IP-PROJECT/backend/database/migrations/xxxx_xx_xx_create_project_status_history_table.php
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -13,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('project_status_history', function (Blueprint $table) {
+        Schema::create('project_status_history', function (Blueprint $table) {  // Changed table name here
             $table->id();
             $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
             $table->string('status');
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('project_status_history');
+        Schema::dropIfExists('project_status_history'); // Changed table name here
     }
 };

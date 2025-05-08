@@ -30,8 +30,8 @@ class ProjectController extends Controller
 
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
-            'contractor_id' => 'required|exists:contractors,id',
-            'consultancy_id' => 'required|exists:consultancies,id',
+            'contractor_id' => 'required|integer|exists:contractors,id',  // Ensure integer and exists
+            'consultancy_id' => 'required|integer|exists:consultancies,id', // Ensure integer and exists
             'location' => 'required|string|max:255',
             'start_date' => 'required|date',
             'end_date' => 'required|date',
